@@ -1,0 +1,60 @@
+openapi: 3.0.0
+info:
+  version: 0.1.0
+  title: Auth Service
+  description: Service to login and register in StackingUp network
+  contact:
+    name: StackingUp
+    email: stackingup13@gmail.com
+    url: 'https://stacking-up.github.io'
+  license:
+    name: MIT
+    url: 'http://opensource.org/licenses/MIT'
+paths:
+  /api/v1/login:
+    post:
+      tags:
+        - Login
+      x-swagger-router-controller: AuthController
+      description: Checks the credentials and generates JWT
+      operationId: login
+      requestBody:
+        description: Login credentials
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/credentials'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
+components:
+  schemas:
+    errorModel:
+      type: string
+    credentials:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string

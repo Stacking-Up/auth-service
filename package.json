@@ -1,0 +1,36 @@
+{
+  "name": "auth-service",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "start": "node index.js",
+    "test:unit": "mocha ./tests/index.test.js --timeout 100000 -s 20",
+    "test:integration": "echo \"Error: no test specified\" && exit 1",
+    "coverage": "nyc --reporter=lcov npm run test:unit",
+    "cov": "nyc npm run test:unit",
+    "lint": "semistandard",
+    "lint-fix": "semistandard --fix",
+    "precommit": "npm run lint-fix && npm run cov"
+  },
+  "dependencies": {
+    "express": "^4.16.3",
+    "js-yaml": "^3.3.0",
+    "oas-tools": "^2.1.4"
+  },
+  "devDependencies": {
+    "mocha": "^9.2.1",
+    "nyc": "^15.1.0",
+    "semistandard": "^16.0.1"
+  },
+  "semistandard": {
+    "ignore": [
+      "/tests/**"
+    ]
+  },
+  "nyc": {
+    "exclude": [
+      "tests",
+      "server.js"
+    ]
+  }
+}
