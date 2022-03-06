@@ -15,7 +15,8 @@
   "dependencies": {
     "express": "^4.16.3",
     "js-yaml": "^3.3.0",
-    "oas-tools": "^2.1.4"
+    "oas-tools": "^2.1.4",
+    "pg": "^8.7.3"
   },
   "devDependencies": {
     "mocha": "^9.2.1",
