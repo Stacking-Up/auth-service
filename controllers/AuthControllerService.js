@@ -1,10 +1,10 @@
 'use strict';
 
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 
 const { Pool } = require('pg');
 const connectionString = process.env.DATABASE_URL || 'postgresql://stackingup:stackingup-local@localhost:5432/data';
-
 const pool = new Pool({ connectionString });
 
 module.exports.login = function login (req, res, next) {
@@ -17,7 +17,7 @@ module.exports.login = function login (req, res, next) {
       return res.status(500).send('Error trying to connect to the database');
     }
 
-    if (result.rows.length === 0 || result.rows[0].password !== password) {
+    if (result.rows.length === 0 || !bcrypt.compareSync(password, result.rows[0].password)) {
       return res.status(400).send('Invalid username or password');
     } else {
       const token = jwt.sign({
@@ -25,7 +25,6 @@ module.exports.login = function login (req, res, next) {
         role: result.rows[0].role,
         userId: result.rows[0].userId
       }, secret, { expiresIn: '1h' });
-
       return res.status(200).send(token);
     }
   });
