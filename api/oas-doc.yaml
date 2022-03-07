@@ -19,6 +19,7 @@ paths:
       description: Checks the credentials and generates JWT
       operationId: login
       requestBody:
+        x-name: credentials
         description: Login credentials
         required: true
         content:
