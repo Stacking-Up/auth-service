@@ -16,6 +16,7 @@ on:
 jobs:
   test:
     name: Lint, test and coverage to coveralls
+    if: github.actor != 'StackingUpBot'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -83,7 +84,9 @@ jobs:
         id: changelog
         uses: TriPSs/conventional-changelog-action@v3
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GH_PAT }}
+          git-user-name: StackingUpBot
+          git-user-email: 101150232+StackingUpBot@users.noreply.github.com
           output-file: 'CHANGELOG.md'
           tag-prefix: 'v'
           release-count: 0
@@ -103,8 +106,8 @@ jobs:
           destination_branch: "develop"
           pr_title: "Synchronize develop with master after release ${{ steps.changelog.outputs.tag }}"
           pr_body: ":crown:"
-          pr_reviewer: "tomgalbar"
-          pr_assignee: "alesancor1"
+          pr_reviewer: "alesancor1"
+          pr_assignee: "StackingUpBot"
           pr_label: "auto-pr"                              
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - uses: AutoModality/action-clean@v1
