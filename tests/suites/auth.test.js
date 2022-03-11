@@ -25,7 +25,7 @@ module.exports = (pool, bcrypt) => {
   it('should return code 200 when user credentials are valid', async () => {
     // fixture
     const query = 'SELECT * FROM "Auth" WHERE "email" = $1';
-    const args = ['test']
+    const args = ['test@test.com'];
     const result = { rows: [{userId: 1, email: 'test@test.com', password: 'someencryptedpass'}] };
 
     // mock query
@@ -34,7 +34,7 @@ module.exports = (pool, bcrypt) => {
 
     // REST call
     await axios.post(`${host}/api/v1/login`, { 
-        username: 'test', 
+        username: 'test@test.com', 
         password: 'test' 
     }).then( (res) => {
       assert.equal(res.status, 200);
@@ -46,7 +46,7 @@ module.exports = (pool, bcrypt) => {
   it('should return code 400 when user credentials are not valid (bcrypt compare returns false)', async () => {
     // fixture
     const query = 'SELECT * FROM "Auth" WHERE "email" = $1';
-    const args = ['test']
+    const args = ['test@test.com'];
     const result = { rows: [{userId: 1, email: 'test@test.com', password: 'someencryptedpass'}] };
 
     // mock query
@@ -55,19 +55,19 @@ module.exports = (pool, bcrypt) => {
 
     // REST call
     await axios.post(`${host}/api/v1/login`, { 
-        username: 'test', 
+        username: 'test@test.com', 
         password: 'test' 
     }).then( () => {
       assert.fail();
     }).catch( (err) => {
-      assert.equal(err.response.status, 400);;
+      assert.equal(err.response.status, 400);
     });
   });
 
   it('should return code 400 when user credentials are not valid (wrong username/password)', async () => {
     // fixture
     const query = 'SELECT * FROM "Auth" WHERE "email" = $1';
-    const args = ['test']
+    const args = ['test@test.com']
     const result = { rows: [] };
 
     // mock query
@@ -75,19 +75,39 @@ module.exports = (pool, bcrypt) => {
 
     // REST call
     await axios.post(`${host}/api/v1/login`, { 
-        username: 'test', 
+        username: 'test@test.com', 
         password: 'test' 
     }).then( () => {
       assert.fail();
     }).catch( (err) => {
-      assert.equal(err.response.status, 400);;
+      assert.equal(err.response.status, 400);
+    });
+  });
+
+  it('should return code 400 when user is not a valid email', async () => {
+    // fixture
+    const query = 'SELECT * FROM "Auth" WHERE "email" = $1';
+    const args = ['userinvalid']
+    const result = { rows: [] };
+
+    // mock query
+    mock.expects('query').withExactArgs(query, args).resolves(result);
+
+    // REST call
+    await axios.post(`${host}/api/v1/login`, { 
+        username: 'userinvalid', 
+        password: 'test' 
+    }).then( () => {
+      assert.fail();
+    }).catch( (err) => {
+      assert.equal(err.response.status, 400);
     });
   });
 
   it('should return 500 when unexpected error occurs', async () => {
     // fixture
     const query = 'SELECT * FROM "Auth" WHERE "email" = $1';
-    const args = ['test']
+    const args = ['test@test.com']
     const result = 'this result is invalid';
 
     // mock query
@@ -95,12 +115,12 @@ module.exports = (pool, bcrypt) => {
 
     // REST call
     await axios.post(`${host}/api/v1/login`, { 
-        username: 'test', 
+        username: 'test@test.com', 
         password: 'test' 
     }).then( () => {
       assert.fail();
     }).catch( (err) => {
-      assert.equal(err.response.status, 500);;
+      assert.equal(err.response.status, 500);
     });
   });
 }
