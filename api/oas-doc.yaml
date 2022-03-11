@@ -33,6 +33,10 @@ paths:
             application/json:
               schema:
                 type: string
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
         '400':
           description: Bad Request
           content:
