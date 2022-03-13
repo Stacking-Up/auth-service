@@ -8,8 +8,8 @@ module.exports.login = function login (req, res, next) {
   const { username, password } = req.credentials.value;
   const secret = process.env.JWT_SECRET || 'stackingupsecretlocal';
 
-  if(username === undefined || password === undefined) {
-    return res.status(400).send("Missing username or password");
+  if (username === undefined || password === undefined) {
+    return res.status(400).send('Missing username or password');
   }
 
   if (!username.match(/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/)) {
