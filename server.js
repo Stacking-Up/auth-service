@@ -6,11 +6,13 @@ const deploy = (env) => {
       const fs = require('fs');
       const http = require('http');
       const path = require('path');
+      const cors = require('cors');
 
       const express = require('express');
       const app = express();
 
       app.use(express.json());
+      app.use(cors());
 
       const oasTools = require('oas-tools');
       const jsyaml = require('js-yaml');
