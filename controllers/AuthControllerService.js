@@ -8,6 +8,10 @@ module.exports.login = function login (req, res, next) {
   const { username, password } = req.credentials.value;
   const secret = process.env.JWT_SECRET || 'stackingupsecretlocal';
 
+  if (username === undefined || password === undefined) {
+    return res.status(400).send('Missing username or password');
+  }
+
   if (!username.match(/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/)) {
     res.status(400).send('Invalid email. Please provide a valid email');
     return;
@@ -25,8 +29,10 @@ module.exports.login = function login (req, res, next) {
       userId: result.rows[0].userId
     }, secret, { expiresIn: '24h' });
 
+    const secure = process.env.COOKIE_DOMAIN ? 'Secure;' : ';';
+
     res.setHeader('Set-Cookie',
-      `authToken=${token}; HttpOnly; Secure; Max-Age=${60 * 60 * 24}; Path=/; Domain=${process.env.COOKIE_DOMAIN || 'localhost'}`
+      `authToken=${token}; HttpOnly; ${secure} Max-Age=${60 * 60 * 24}; Path=/; Domain=${process.env.COOKIE_DOMAIN || 'localhost'}`
     ).status(200).send('Logged in successfully');
   })
     .catch(err => {

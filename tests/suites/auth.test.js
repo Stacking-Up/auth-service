@@ -84,6 +84,24 @@ module.exports = (pool, bcrypt) => {
     });
   });
 
+  it('should return code 400 when user and/or password are undefined', async () => {
+    // fixture
+    const query = 'SELECT * FROM "Auth" WHERE "email" = $1';
+    const args = []
+    const result = { rows: [] };
+
+    // mock query
+    mock.expects('query').withExactArgs(query, args).resolves(result);
+
+    // REST call
+    await axios.post(`${host}/api/v1/login`, {
+    }).then( () => {
+      assert.fail();
+    }).catch( (err) => {
+      assert.equal(err.response.status, 400);
+    });
+  });
+
   it('should return code 400 when user is not a valid email', async () => {
     // fixture
     const query = 'SELECT * FROM "Auth" WHERE "email" = $1';
