@@ -29,8 +29,10 @@ module.exports.login = function login (req, res, next) {
       userId: result.rows[0].userId
     }, secret, { expiresIn: '24h' });
 
+    const secure = process.env.COOKIE_DOMAIN ? 'Secure;' : ';';
+
     res.setHeader('Set-Cookie',
-      `authToken=${token}; HttpOnly; Secure; Max-Age=${60 * 60 * 24}; Path=/; Domain=${process.env.COOKIE_DOMAIN || 'localhost'}`
+      `authToken=${token}; HttpOnly; ${secure} Max-Age=${60 * 60 * 24}; Path=/; Domain=${process.env.COOKIE_DOMAIN || 'localhost'}`
     ).status(200).send('Logged in successfully');
   })
     .catch(err => {
