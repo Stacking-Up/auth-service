@@ -12,7 +12,14 @@ const deploy = (env) => {
       const app = express();
 
       app.use(express.json());
-      app.use(cors());
+
+      const domain = process.env.DNS_SUFFIX;
+      const subDomain = process.env.SERVICES_PREFIX? `${process.env.SERVICES_PREFIX}.` : '';
+      
+      app.use(cors({
+        origin: `https://${subDomain}${domain}` || 'http://localhost:3000',
+        credentials: true
+      }));
 
       const oasTools = require('oas-tools');
       const jsyaml = require('js-yaml');
