@@ -14,8 +14,8 @@ const deploy = (env) => {
       app.use(express.json());
 
       const domain = process.env.DNS_SUFFIX;
-      const subDomain = process.env.SERVICES_PREFIX? `${process.env.SERVICES_PREFIX}.` : '';
-      
+      const subDomain = process.env.SERVICES_PREFIX ? `${process.env.SERVICES_PREFIX}.` : '';
+
       app.use(cors({
         origin: `https://${subDomain}${domain}` || 'http://localhost:3000',
         credentials: true
