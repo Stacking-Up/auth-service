@@ -29,6 +29,7 @@ module.exports.login = function login (req, res, next) {
       userId: result.rows[0].userId
     }, secret, { expiresIn: '24h' });
 
+    /* istanbul ignore next */
     const secure = process.env.COOKIE_DOMAIN ? 'Secure;' : ';';
 
     res.setHeader('Set-Cookie',
@@ -43,4 +44,15 @@ module.exports.login = function login (req, res, next) {
       console.error(err);
       res.status(500).send('Internal server error');
     });
+};
+
+module.exports.logout = function logout (req, res, next) {
+  try {
+    res.setHeader('Set-Cookie',
+    `authToken=; Max-Age=-1; Path=/; Domain=${process.env.COOKIE_DOMAIN || 'localhost'}`
+    ).status(200).send('Logged out');
+  } catch (err) {
+    /* istanbul ignore next */
+    res.status(500).send('Internal server error');
+  }
 };

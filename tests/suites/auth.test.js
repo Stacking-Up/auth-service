@@ -141,4 +141,15 @@ module.exports = (pool, bcrypt) => {
       assert.equal(err.response.status, 500);
     });
   });
+
+  it('should return code 200 when user logout', async () => {
+    // REST call
+    await axios.post(`${host}/api/v1/logout`)
+    .then( (res) => {
+      assert.equal(res.status, 200);
+    }).catch( () => {
+      assert.fail();
+    });
+  });
+
 }
