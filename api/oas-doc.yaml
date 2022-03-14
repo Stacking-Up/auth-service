@@ -32,7 +32,18 @@ paths:
           content:
             application/json:
               schema:
-                type: string
+                type: object
+                required:
+                  - email
+                  - role
+                  - userId
+                properties:
+                  email:
+                    type: string
+                  role:
+                    type: string
+                  userId:
+                    type: integer
           headers:
             Set-Cookie:
               schema:

@@ -33,7 +33,11 @@ module.exports.login = function login (req, res, next) {
 
     res.setHeader('Set-Cookie',
       `authToken=${token}; HttpOnly; ${secure} Max-Age=${60 * 60 * 24}; Path=/; Domain=${process.env.COOKIE_DOMAIN || 'localhost'}`
-    ).status(200).send('Logged in successfully');
+    ).status(200).send({
+      email: result.rows[0].email,
+      role: result.rows[0].role,
+      userId: result.rows[0].userId
+    });
   })
     .catch(err => {
       console.error(err);
