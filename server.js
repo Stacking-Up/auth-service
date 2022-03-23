@@ -6,9 +6,20 @@ const deploy = (env) => {
       const fs = require('fs');
       const http = require('http');
       const path = require('path');
+      const cors = require('cors');
 
       const express = require('express');
       const app = express();
+
+      app.use(express.json());
+
+      const domain = process.env.DNS_SUFFIX;
+      const subDomain = process.env.SERVICES_PREFIX ? `${process.env.SERVICES_PREFIX}.` : '';
+
+      app.use(cors({
+        origin: [`https://${subDomain}${domain}`, 'http://localhost:3000'],
+        credentials: true
+      }));
 
       const oasTools = require('oas-tools');
       const jsyaml = require('js-yaml');

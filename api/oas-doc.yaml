@@ -14,11 +14,12 @@ paths:
   /api/v1/login:
     post:
       tags:
-        - Login
+        - Authentication
       x-swagger-router-controller: AuthController
       description: Checks the credentials and generates JWT
       operationId: login
       requestBody:
+        x-name: credentials
         description: Login credentials
         required: true
         content:
@@ -31,6 +32,21 @@ paths:
           content:
             application/json:
               schema:
+                type: object
+                required:
+                  - email
+                  - role
+                  - userId
+                properties:
+                  email:
+                    type: string
+                  role:
+                    type: string
+                  userId:
+                    type: integer
+          headers:
+            Set-Cookie:
+              schema:
                 type: string
         '400':
           description: Bad Request
@@ -38,6 +54,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/errorModel'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
+  /api/v1/logout:
+    post:
+      tags:
+        - Authentication
+      x-swagger-router-controller: AuthController
+      description: Logouts, removes JWT token
+      operationId: logout
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: string
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
         '500':
           description: Internal Server Error
           content:
