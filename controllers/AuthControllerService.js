@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const pool = require('../utils/dbCon');
 
-module.exports.login = function login(req, res, next) {
+module.exports.login = function login (req, res, next) {
   const { username, password } = req.credentials.value;
   const secret = process.env.JWT_SECRET || 'stackingupsecretlocal';
 
@@ -46,7 +46,7 @@ module.exports.login = function login(req, res, next) {
     });
 };
 
-module.exports.logout = function logout(req, res, next) {
+module.exports.logout = function logout (req, res, next) {
   try {
     res.setHeader('Set-Cookie',
       `authToken=; Max-Age=-1; Path=/; Domain=${process.env.COOKIE_DOMAIN || 'localhost'}`
@@ -57,7 +57,7 @@ module.exports.logout = function logout(req, res, next) {
   }
 };
 
-module.exports.register = function register(req, res, next) {
+module.exports.register = function register (req, res, next) {
   const { name, surname, email, password } = req.user.value;
 
   if (!name || !surname || !email || !password) {
@@ -105,4 +105,4 @@ module.exports.register = function register(req, res, next) {
       console.error(err);
       res.status(500).send('Internal server error');
     });
-}
+};
