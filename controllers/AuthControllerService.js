@@ -80,14 +80,14 @@ module.exports.register = function register (req, res, next) {
     return;
   }
 
-  pool.query('SELECT * FROM "Auth" WHERE "email" = $1', [email])
+  pool.query('SELECT * FROM "Auth" WHERE "email" = $1', [email.toString().toLowerCase()])
     .then(result => {
       if (result.rows.length > 0) {
         res.status(400).send('Email already registered');
         return;
       }
 
-      pool.query('INSERT INTO "User" ("name", "surname") VALUES ($1, $2) RETURNING *', [name, surname])
+      pool.query('INSERT INTO "User" ("name", "surname") VALUES ($1, $2) RETURNING *', [name.toString(), surname.toString()])
         .then(result => {
           pool.query('INSERT INTO "Auth" ("email", "password", "userId", "role") VALUES ($1, $2, $3, $4)', [email, bcrypt.hashSync(password, 10), result.rows[0].id, 'USER'])
             .then(() => {
