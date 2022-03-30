@@ -16,8 +16,8 @@ module.exports.register = function register (req, res, next) {
 
 module.exports.postVerify = function postVerify (req, res, next) {
   varAuthController.postVerify(req, res, next);
-}
+};
 
 module.exports.putVerify = function putVerify (req, res, next) {
   varAuthController.putVerify(req, res, next);
-}
+};

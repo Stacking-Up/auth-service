@@ -21,7 +21,8 @@
     "js-yaml": "^3.3.0",
     "jsonwebtoken": "^8.5.1",
     "oas-tools": "^2.1.4",
-    "pg": "^8.7.3"
+    "pg": "^8.7.3",
+    "twilio": "^3.76.0"
   },
   "devDependencies": {
     "axios": "^0.26.0",
