@@ -3,6 +3,10 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const pool = require('../utils/dbCon');
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const client = require('twilio')(accountSid, authToken);
+const stackingupSid=process.env.STACKINGUP_SID;
 
 module.exports.login = function login (req, res, next) {
   const { username, password } = req.credentials.value;
@@ -105,4 +109,34 @@ module.exports.register = function register (req, res, next) {
       console.error(err);
       res.status(500).send('Internal server error');
     });
+    
 };
+
+module.exports.postVerify = function postVerify(req, res, next){
+  const authToken = req.cookies?.authToken;
+  const phoneNumber=req.swagger.params.phoneNumber.value;
+
+  if(authToken){
+    let phoneNumberSTR = phoneNumber.toString().replace(/\s/g, '');
+    if(phoneNumberSTR.substring(3).length === 9 && /^[+]{1}34[67]{1}[0-9]{8}$/.test(phoneNumberSTR)){
+      try{
+        client.verify.services(stackingupSid.toString())
+          .verifications
+          .create({to: phoneNumber_prefijo, channel: 'sms', locale: 'es'})
+          .then(verification => console.log(verification.status))
+          //Se queda esperando en status "pending"
+
+      }catch(err){
+        console.error(err);
+        res.status(500).send('Internal server error');
+      }
+  
+    }else{
+      res.status(400).send('Invalid phone number');
+    }
+  }else{
+    res.status(401).send('Unauthorized');
+  }
+
+
+}
