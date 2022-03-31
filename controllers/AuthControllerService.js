@@ -1,13 +1,12 @@
 'use strict';
-require('dotenv').config()
+require('dotenv').config();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const pool = require('../utils/dbCon');
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
+const authTokenTwilio = process.env.TWILIO_AUTH_TOKEN;
 const stackingupSid = process.env.STACKINGUP_SID;
-const client = require('twilio')(accountSid, authToken);
-
+const client = require('twilio')(accountSid, authTokenTwilio);
 
 module.exports.login = function login (req, res, next) {
   const { username, password } = req.credentials.value;
@@ -114,29 +113,97 @@ module.exports.register = function register (req, res, next) {
 
 module.exports.postVerify = function postVerify (req, res, next) {
   const authToken = req.cookies?.authToken;
-  const phoneNumber = req.swagger.params.phoneNumber?.value.phoneNumber;
 
   if (authToken) {
-    //SACAR ROL DE authToken y añadir if() para comprobar que el rol no es VERIFY
-    let phoneNumberSTR = phoneNumber.toString().replace(/\s/g, '');
-    if (phoneNumberSTR.substring(3).length === 9 && /^[+]{1}34[67]{1}[0-9]{8}$/.test(phoneNumberSTR)) {
+    try {
+      const decoded = jwt.verify(authToken, process.env.JWT_SECRET || 'stackingupsecretlocal');
+
+      if (decoded.role !== 'USER') {
+        res.status(403).send('User already verified.');
+        return;
+      }
+      pool.query('SELECT "phoneNumber" FROM "User" WHERE "id" = $1', [decoded.userId]).then(result=>{
+        const phoneNumber=result.rows[0].phoneNumber
+
+        if(!phoneNumber || result.rows.length === 0){
+          res.status(400).send('Missing phone number');
+          return;
+        }
+
+        const phoneNumberSTR = phoneNumber.toString().replace(/\s/g, '');
+        if (!(phoneNumberSTR.substring(3).length === 9 && /^[+]{1}34[67]{1}[0-9]{8}$/.test(phoneNumberSTR))) {
+          res.status(400).send('Invalid phone number');
+          return;
+        }
+
+        try {
+          client.verify.services(stackingupSid.toString())
+            .verifications
+            .create({ to: phoneNumberSTR, channel: 'sms', locale: 'es' })
+            .then(verification => console.log(verification.status));
+          // Se queda esperando en status "pending"
+          res.status(201).send('Verification code sent');
+        } catch (err) {
+          console.error(err);
+          res.status(500).send('Internal server error');
+        }
+    })
+    } catch (err) {
+      if (err instanceof jwt.JsonWebTokenError) {
+        res.status(401).send(`Unauthorized: ${err.message}`);
+      } else {
+        res.status(500).send('Internal Server Error');
+      }
+    }
+  } else {
+    res.status(401).send('Unauthorized');
+  }
+};
+
+module.exports.putVerify = function putVerify (req, res, next) {
+  const authToken = req.params.authToken;
+  const phoneAndCode = req.swagger.params.phoneAndCode.value;
+
+  if (authToken) {
+  // SACAR ROL DE authToken y añadir if() para comprobar que el rol no es VERIFY
+    const phoneNumber = phoneAndCode.phoneNumber;
+    const code = phoneAndCode.code;
+    const phoneNumberSTR = phoneNumber.toString().replace(/\s/g, '');
+
+    if (phoneNumberSTR.substring(3).length === 9 && /^[+]{1}34[67]{1}[0-9]{8}$/.test(phoneNumberSTR &&
+      code.toString().length === 7 && /^[0-9]{7}$/.test(code))) {
       try {
         client.verify.services(stackingupSid.toString())
-          .verifications
-          .create({ to: phoneNumberSTR, channel: 'sms', locale: 'es' })
-          .then(verification => console.log(verification.status));
-        // Se queda esperando en status "pending"
-        res.status(201).send('Verification code sent');
+          .verificationChecks
+          .create({ to: phoneNumberSTR, code: code })
+          .then(verification => {
+            if (verification.status === 'approved') {
+              pool.query('SELECT * FROM "Auth" WHERE "authToken" = $1', [authToken])
+                .then(result => {
+                  pool.query('UPDATE "User" SET ("phoneNumber",  = $1 WHERE "auth" = $2', [phoneNumber, authToken])
+                    .then(() => {
+                      res.status(200).send('Phone number verified');
+                    })
+                    .catch(err => {
+                      console.error(err);
+                      res.status(500).send('Internal server error');
+                    });
+                }).catch(err => {
+                  console.error(err);
+                  res.status(500).send('Internal server error');
+                });
+            } else {
+              res.status(400).send('Invalid verification code');
+            }
+          });
       } catch (err) {
         console.error(err);
         res.status(500).send('Internal server error');
       }
     } else {
-      res.status(400).send('Invalid phone number');
-      return;
+      res.status(400).send('Invalid phone number or verification code');
     }
   } else {
     res.status(401).send('Unauthorized');
-    return;
   }
 };
