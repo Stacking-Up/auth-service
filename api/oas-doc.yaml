@@ -120,11 +120,13 @@ paths:
                 $ref: '#/components/schemas/errorModel'  
   /api/v1/verify:
     post:
+      security:
+        - cookieAuth: []
       tags:
         - Verification
       x-swagger-router-controller: AuthController
       description: Verifies the user phone number
-      operationId: verify
+      operationId: postVerify
       requestBody:
         x-name: phoneNumber
         description: User phone number
@@ -132,7 +134,7 @@ paths:
         content:
           application/json:
             schema:
-              type: string
+              $ref: '#/components/schemas/phoneNumber'
       responses:
         '201':
           description: Success
@@ -152,39 +154,51 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/errorModel'
-    put:
-      tags:
-        - Verification
-      x-swagger-router-controller: AuthController
-      description: Verifies the user phone number
-      operationId: verify
-      requestBody:
-        x-name: phoneNumber
-        description: User phone number
-        required: true
-        content:
-          application/json:
-            schema:
-              type: string
-      responses:
-        '201':
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/errorModel'
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/errorModel'
+    # put:
+    #   tags:
+    #     - Verification
+    #   x-swagger-router-controller: AuthController
+    #   description: Verifies the user phone number
+    #   operationId: verify
+    #   requestBody:
+    #     x-name: phoneNumber
+    #     description: User phone number
+    #     required: true
+    #     content:
+    #       application/json:
+    #         schema:
+    #           $ref: '#/components/schemas/phoneNumber'
+    #   responses:
+    #     '201':
+    #       description: Success
+    #       content:
+    #         application/json:
+    #           schema:
+    #            $ref: '#/components/schemas/errorModel'
+    #     '400':
+    #       description: Bad Request
+    #       content:
+    #         application/json:
+    #           schema:
+    #             $ref: '#/components/schemas/errorModel'
+    #     '401':
+    #       description: Unauthorized
+    #       content:
+    #         application/json:
+    #           schema:
+    #             $ref: '#/components/schemas/errorModel'
+    #     '403':
+    #       description: Forbidden
+    #       content:
+    #         application/json:
+    #           schema:
+    #             $ref: '#/components/schemas/errorModel'
+    #     '500':
+    #       description: Internal Server Error
+    #       content:
+    #         application/json:
+    #           schema:
+    #             $ref: '#/components/schemas/errorModel'
 
 components:
   schemas:
@@ -216,3 +230,12 @@ components:
           type: string
         password:
           type: string
+    phoneNumber:
+      type: object
+      required:
+        - phoneNumber
+      properties:
+        phoneNumber:
+          type: string
+
+

@@ -114,10 +114,11 @@ module.exports.register = function register (req, res, next) {
 
 module.exports.postVerify = function postVerify (req, res, next) {
   const authToken = req.cookies?.authToken;
-  const phoneNumber = req.swagger.params.phoneNumber.value;
+  const phoneNumber = req.swagger.params.phoneNumber?.value.phoneNumber;
 
   if (authToken) {
-    const phoneNumberSTR = phoneNumber.toString().replace(/\s/g, '');
+    //SACAR ROL DE authToken y añadir if() para comprobar que el rol no es VERIFY
+    let phoneNumberSTR = phoneNumber.toString().replace(/\s/g, '');
     if (phoneNumberSTR.substring(3).length === 9 && /^[+]{1}34[67]{1}[0-9]{8}$/.test(phoneNumberSTR)) {
       try {
         client.verify.services(stackingupSid.toString())
@@ -125,14 +126,17 @@ module.exports.postVerify = function postVerify (req, res, next) {
           .create({ to: phoneNumberSTR, channel: 'sms', locale: 'es' })
           .then(verification => console.log(verification.status));
         // Se queda esperando en status "pending"
+        res.status(201).send('Verification code sent');
       } catch (err) {
         console.error(err);
         res.status(500).send('Internal server error');
       }
     } else {
       res.status(400).send('Invalid phone number');
+      return;
     }
   } else {
     res.status(401).send('Unauthorized');
+    return;
   }
 };

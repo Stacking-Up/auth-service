@@ -9,9 +9,12 @@ const deploy = (env) => {
       const cors = require('cors');
 
       const express = require('express');
+      const cookieParser = require('cookie-parser');
+
       const app = express();
 
       app.use(express.json());
+      app.use(cookieParser());
 
       const domain = process.env.DNS_SUFFIX;
       const subDomain = process.env.SERVICES_PREFIX ? `${process.env.SERVICES_PREFIX}.` : '';
