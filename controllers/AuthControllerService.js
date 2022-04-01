@@ -122,10 +122,10 @@ module.exports.postVerify = function postVerify (req, res, next) {
         res.status(403).send('User already verified.');
         return;
       }
-      pool.query('SELECT "phoneNumber" FROM "User" WHERE "id" = $1', [decoded.userId]).then(result=>{
-        const phoneNumber=result.rows[0].phoneNumber
+      pool.query('SELECT "phoneNumber" FROM "User" WHERE "id" = $1', [decoded.userId]).then(result => {
+        const phoneNumber = result.rows[0].phoneNumber;
 
-        if(!phoneNumber || result.rows.length === 0){
+        if (!phoneNumber || result.rows.length === 0) {
           res.status(400).send('Missing phone number');
           return;
         }
@@ -147,7 +147,7 @@ module.exports.postVerify = function postVerify (req, res, next) {
           console.error(err);
           res.status(500).send('Internal server error');
         }
-    })
+      });
     } catch (err) {
       if (err instanceof jwt.JsonWebTokenError) {
         res.status(401).send(`Unauthorized: ${err.message}`);
@@ -161,47 +161,68 @@ module.exports.postVerify = function postVerify (req, res, next) {
 };
 
 module.exports.putVerify = function putVerify (req, res, next) {
-  const authToken = req.params.authToken;
-  const phoneAndCode = req.swagger.params.phoneAndCode.value;
+  const authToken = req.cookies?.authToken;
+  const code = req.swagger.params.code?.value.code.toString();
 
   if (authToken) {
-  // SACAR ROL DE authToken y añadir if() para comprobar que el rol no es VERIFY
-    const phoneNumber = phoneAndCode.phoneNumber;
-    const code = phoneAndCode.code;
-    const phoneNumberSTR = phoneNumber.toString().replace(/\s/g, '');
+    try {
+      const decoded = jwt.verify(authToken, process.env.JWT_SECRET || 'stackingupsecretlocal');
 
-    if (phoneNumberSTR.substring(3).length === 9 && /^[+]{1}34[67]{1}[0-9]{8}$/.test(phoneNumberSTR &&
-      code.toString().length === 7 && /^[0-9]{7}$/.test(code))) {
-      try {
-        client.verify.services(stackingupSid.toString())
-          .verificationChecks
-          .create({ to: phoneNumberSTR, code: code })
-          .then(verification => {
-            if (verification.status === 'approved') {
-              pool.query('SELECT * FROM "Auth" WHERE "authToken" = $1', [authToken])
-                .then(result => {
-                  pool.query('UPDATE "User" SET ("phoneNumber",  = $1 WHERE "auth" = $2', [phoneNumber, authToken])
-                    .then(() => {
-                      res.status(200).send('Phone number verified');
-                    })
-                    .catch(err => {
-                      console.error(err);
-                      res.status(500).send('Internal server error');
-                    });
-                }).catch(err => {
-                  console.error(err);
-                  res.status(500).send('Internal server error');
-                });
-            } else {
-              res.status(400).send('Invalid verification code');
-            }
-          });
-      } catch (err) {
-        console.error(err);
-        res.status(500).send('Internal server error');
+      if (decoded.role !== 'USER') {
+        res.status(403).send('User already verified.');
+        return;
       }
-    } else {
-      res.status(400).send('Invalid phone number or verification code');
+
+      if (!(code.length === 7 && /^[0-9]{7}$/.test(code))) {
+        res.status(400).send('Invalid verification code');
+        return;
+      }
+
+      pool.query('SELECT "phoneNumber" FROM "User" WHERE "id" = $1', [decoded.userId]).then(result => {
+        const phoneNumber = result.rows[0].phoneNumber;
+
+        if (!phoneNumber || result.rows.length === 0) {
+          res.status(400).send('Missing phone number');
+          return;
+        }
+
+        const phoneNumberSTR = phoneNumber.toString().replace(/\s/g, '');
+        if (!(phoneNumberSTR.substring(3).length === 9 && /^[+]{1}34[67]{1}[0-9]{8}$/.test(phoneNumberSTR))) {
+          res.status(400).send('Invalid phone number');
+          return;
+        }
+
+        try {
+          client.verify.services(stackingupSid.toString())
+            .verificationChecks
+            .create({ to: phoneNumberSTR, code: code })
+            .then(verificationCheck => {
+              if (verificationCheck.status !== 'approved') {
+                res.status(400).send('Error when verifying this number. Wrong code.');
+                return;
+              }
+              pool.query('UPDATE "Auth" SET "role" = $1 WHERE "userId" = $2', ['VERIFIED', decoded.userId]).then(() => {
+                try {
+                  res.setHeader('Set-Cookie',
+                    `authToken=; Max-Age=-1; Path=/; Domain=${process.env.COOKIE_DOMAIN || 'localhost'}`
+                  ).status(200).send('Phone number verifi and user logged out');
+                } catch (err) {
+                  /* istanbul ignore next */
+                  res.status(500).send('Internal server error');
+                }
+              });
+            });
+        } catch (err) {
+          console.error(err);
+          res.status(500).send('Internal server error');
+        }
+      });
+    } catch (err) {
+      if (err instanceof jwt.JsonWebTokenError) {
+        res.status(401).send(`Unauthorized: ${err.message}`);
+      } else {
+        res.status(500).send('Internal Server Error');
+      }
     }
   } else {
     res.status(401).send('Unauthorized');

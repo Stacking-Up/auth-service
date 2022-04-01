@@ -140,6 +140,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/errorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
         '500':
           description: Internal Server Error
           content:
@@ -155,15 +167,15 @@ paths:
       description: Verifies the user phone number
       operationId: putVerify
       requestBody:
-        x-name: phoneNumber
-        description: User phone number
+        x-name: code
+        description: Random code sent to the user
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/phoneAndCode'
+              $ref: '#/components/schemas/code'
       responses:
-        '201':
+        '200':
           description: Success
           content:
             application/json:
@@ -224,14 +236,11 @@ components:
           type: string
         password:
           type: string
-    phoneAndCode:
+    code:
       type: object
       required:
-        - phoneNumber
         - code
       properties:
-        phoneNumber:
-          type: string
         code:
           type: string
 
