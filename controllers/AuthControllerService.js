@@ -202,14 +202,20 @@ module.exports.putVerify = function putVerify (req, res, next) {
                 return;
               }
               pool.query('UPDATE "Auth" SET "role" = $1 WHERE "userId" = $2', ['VERIFIED', decoded.userId]).then(() => {
-                try {
-                  res.setHeader('Set-Cookie',
-                    `authToken=; Max-Age=-1; Path=/; Domain=${process.env.COOKIE_DOMAIN || 'localhost'}`
-                  ).status(200).send('Phone number verifi and user logged out');
-                } catch (err) {
-                  /* istanbul ignore next */
-                  res.status(500).send('Internal server error');
-                }
+                pool.query('SELECT "role" FROM "Auth" WHERE "userId" = $1', [decoded.userId]).then(result => {
+                  if (result.rows[0].role !== 'VERIFIED') {
+                    res.status(500).send('Internal server error. User role not changed.');
+                    return;
+                  }
+                  try {
+                    res.setHeader('Set-Cookie',
+                      `authToken=; Max-Age=-1; Path=/; Domain=${process.env.COOKIE_DOMAIN || 'localhost'}`
+                    ).status(200).send('Phone number verified and user logged out');
+                  } catch (err) {
+                    /* istanbul ignore next */
+                    res.status(500).send('Internal server error');
+                  }
+                });
               });
             });
         } catch (err) {
