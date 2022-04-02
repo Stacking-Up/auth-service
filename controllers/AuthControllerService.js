@@ -139,12 +139,13 @@ module.exports.postVerify = function postVerify (req, res, next) {
         try {
           client.verify.services(stackingupSid.toString())
             .verifications
-            .create({ to: phoneNumberSTR, channel: 'sms', locale: 'es' })
-            .then(verification => console.log(verification.status));
+            .create({ to: phoneNumberSTR, channel: 'sms', locale: 'es' });
           // Se queda esperando en status "pending"
           res.status(201).send('Verification code sent');
         } catch (err) {
+          /* istanbul ignore next */
           console.error(err);
+          /* istanbul ignore next */
           res.status(500).send('Internal server error');
         }
       });
@@ -160,7 +161,7 @@ module.exports.postVerify = function postVerify (req, res, next) {
   }
 };
 
-module.exports.putVerify = function putVerify (req, res, next) {
+module.exports.putVerify =  function putVerify (req, res, next) {
   const authToken = req.cookies?.authToken;
   const code = req.swagger.params.code?.value.code.toString();
 
@@ -197,6 +198,7 @@ module.exports.putVerify = function putVerify (req, res, next) {
             .verificationChecks
             .create({ to: phoneNumberSTR, code: code })
             .then(verificationCheck => {
+              console.log(verificationCheck)
               if (verificationCheck.status !== 'approved') {
                 res.status(400).send('Error when verifying this number. Wrong code.');
                 return;

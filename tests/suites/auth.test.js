@@ -4,21 +4,32 @@ const sinon = require('sinon');
 
 const host = 'http://localhost:4000';
 
-module.exports = (pool, bcrypt) => {
+module.exports = (pool, bcrypt, jwt, client, client2) => {
   let compareSync;
   let mock;
   let hashSync;
+  let verify;
+  let twilio;
+  let twilio2;
 
   before(() => {
     sinon.stub(console, 'error'); // avoid consoling errors caused by tests
     compareSync = sinon.stub(bcrypt, 'compareSync');
     hashSync = sinon.stub(bcrypt, 'hashSync');
     mock = sinon.mock(pool);
+    verify = sinon.stub(jwt, 'verify');
+    twilio = sinon.mock(client);
+    twilio2 = sinon.mock(client2);
   });
 
   afterEach(() => {
     mock.restore();
+    twilio.restore();
+    twilio2.restore();
     mock = sinon.mock(pool);
+    twilio=sinon.mock(client);
+    twilio2 = sinon.mock(client2);
+
   })
 
   /***************************************************************************
@@ -375,5 +386,599 @@ module.exports = (pool, bcrypt) => {
       assert.equal(err.response.data, 'Internal server error');
     });
   });
+
+
+
+  // VERIFICATION PROCESS 
+        
+          //(POST /api/v1/verify)
+
+  it('should return code 201 when verification code is sent (postVerify)', async () => {
+    const expected = 'Verification code sent';
+    const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+    const query= 'SELECT "phoneNumber" FROM "User" WHERE "id" = $1';
+    const args = [decodedJwt.userId];
+    const result = { rows: [{phoneNumber: '+34 777 77 77 77'}] };
+    const phoneNumber = result.rows[0].phoneNumber.toString().replace(/\s/g, '')
+    //mock query
+    mock.expects('query').withExactArgs(query, args).resolves(result);
+
+    // Mock Auth
+    verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+    //Mock Twilio
+    twilio.expects('create').withArgs({
+      to: phoneNumber,
+      channel: 'sms', 
+      locale: 'es' 
+    }).resolves();
+
+    // REST call
+    await axios.post(`${host}/api/v1/verify`, {},{
+      withCredentials: true,
+      headers: { Cookie: 'authToken=testToken;' }
+    }
+     ).then( (res) => {
+      assert.equal(res.status, 201);
+      assert.equal(res.data, expected)
+    }).catch( () => {
+      assert.fail();
+    });
+  })
+
+
+  it('should return code 401 when authToken is missing when verifing (postVerify)', async () => {
+    const expected = 'Unauthorized';
+
+    // REST call
+    await axios.post(`${host}/api/v1/verify`, {}).then( () => {
+      assert.fail();
+    }).catch( (err) => {
+      assert.equal(err.response.status, 401);
+      assert.equal(err.response.data, expected);
+    })
+  })
+
+  it('Should return 401 when JWTError is thrown on verification (postVerify)', async () => {
+    // Fixture
+    const expected = 'Unauthorized: Invalid token';
+
+    // Mock Auth
+    verify.withArgs('testToken', 'stackingupsecretlocal').throws(new jwt.JsonWebTokenError('Invalid token'));
+
+    // API Call
+    await axios.post(`${host}/api/v1/verify`, {}, {
+      withCredentials: true,
+      headers: { Cookie: 'authToken=testToken;' }
+    })
+      .then(() => {
+        assert.fail();
+      }).catch(err => {
+        assert.equal(err.response.status, 401);
+        assert.equal(err.response.data, expected);
+      });
+  });
+
+  it('should return 403 when user is already verified (postVerify)', async () => {
+    // Fixture
+    const expected = 'User already verified.';
+    const decodedJwt = { userId: 1, role: 'VERIFIED', email: 'test@test.com' };
+
+
+    // Mock Auth
+    verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+    // REST call
+    await axios.post(`${host}/api/v1/verify`, {}, {
+      withCredentials: true,
+      headers: { Cookie: 'authToken=testToken;' }
+    }).then( () => {
+      assert.fail();
+    }).catch( (err) => {
+      assert.equal(err.response.status, 403);
+      assert.equal(err.response.data, expected);
+    })
+  })
+
+  it('should return 400 when phone number is missing (postVerify)', async () => {
+    // Fixture
+    const expected = 'Missing phone number';
+    const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+    const query= 'SELECT "phoneNumber" FROM "User" WHERE "id" = $1';
+    const args = [decodedJwt.userId];
+    const result = { rows: [{}] };
+
+    //mock query
+    mock.expects('query').withExactArgs(query, args).resolves(result);
+
+    // Mock Auth
+    verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+    // REST call
+    await axios.post(`${host}/api/v1/verify`, {},{
+      withCredentials: true,
+      headers: { Cookie: 'authToken=testToken;' }
+    }
+     ).then( () => {
+      assert.fail();
+    }).catch( (err) => {
+      assert.equal(err.response.status, 400);
+      assert.equal(err.response.data, expected)
+    });
+  })
+
+  it('should return 400 when phone number is undefined (postVerify)', async () => {
+    // Fixture
+    const expected = 'Missing phone number';
+    const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+    const query= 'SELECT "phoneNumber" FROM "User" WHERE "id" = $1';
+    const args = [decodedJwt.userId];
+    const result = { rows: [{phoneNumber: undefined}] };
+
+    //mock query
+    mock.expects('query').withExactArgs(query, args).resolves(result);
+
+    // Mock Auth
+    verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+    // REST call
+    await axios.post(`${host}/api/v1/verify`, {},{
+      withCredentials: true,
+      headers: { Cookie: 'authToken=testToken;' }
+    }
+     ).then( () => {
+      assert.fail();
+    }).catch( (err) => {
+      assert.equal(err.response.status, 400);
+      assert.equal(err.response.data, expected)
+    });
+  })
+
+  it('should return 400 when phone number is invalid (postVerify)', async () => {
+    // Fixture
+    const expected = 'Invalid phone number';
+    const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+    const query= 'SELECT "phoneNumber" FROM "User" WHERE "id" = $1';
+    const args = [decodedJwt.userId];
+    const result = { rows: [{phoneNumber: '+34 678 83 83 536'}] }; //diez números en el teléfono
+
+    //mock query
+    mock.expects('query').withExactArgs(query, args).resolves(result);
+
+    // Mock Auth
+    verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+    // REST call
+    await axios.post(`${host}/api/v1/verify`, {},{
+      withCredentials: true,
+      headers: { Cookie: 'authToken=testToken;' }
+    }
+     ).then( () => {
+      assert.fail();
+    }).catch( (err) => {
+      assert.equal(err.response.status, 400);
+      assert.equal(err.response.data, expected)
+    });
+  })
+
+  it('should return 400 when phone number contains letters (postVerify)', async () => {
+    // Fixture
+    const expected = 'Invalid phone number';
+    const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+    const query= 'SELECT "phoneNumber" FROM "User" WHERE "id" = $1';
+    const args = [decodedJwt.userId];
+    const result = { rows: [{phoneNumber: '+34 678 test 56'}] }; 
+
+    //mock query
+    mock.expects('query').withExactArgs(query, args).resolves(result);
+
+    // Mock Auth
+    verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+    // REST call
+    await axios.post(`${host}/api/v1/verify`, {},{
+      withCredentials: true,
+      headers: { Cookie: 'authToken=testToken;' }
+    }
+     ).then( () => {
+      assert.fail();
+    }).catch( (err) => {
+      assert.equal(err.response.status, 400);
+      assert.equal(err.response.data, expected)
+    });
+  })
+
+  it('should return 400 when phone number without prefix (postVerify)', async () => {
+    // Fixture
+    const expected = 'Invalid phone number';
+    const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+    const query= 'SELECT "phoneNumber" FROM "User" WHERE "id" = $1';
+    const args = [decodedJwt.userId];
+    const result = { rows: [{phoneNumber: '678 45 72 56'}] }; 
+
+    //mock query
+    mock.expects('query').withExactArgs(query, args).resolves(result);
+
+    // Mock Auth
+    verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+    // REST call
+    await axios.post(`${host}/api/v1/verify`, {},{
+      withCredentials: true,
+      headers: { Cookie: 'authToken=testToken;' }
+    }
+     ).then( () => {
+      assert.fail();
+    }).catch( (err) => {
+      assert.equal(err.response.status, 400);
+      assert.equal(err.response.data, expected)
+    });
+  })
+
+  it('Should return 500 when an unexpected error is thrown (postVerify)', async () => {
+    // Fixture
+    const expected = 'Internal Server Error';
+
+    // Mock Auth 
+    console.error = sinon.stub(); // Avoid logging intentionally provoked error
+    verify.withArgs('testToken', 'stackingupsecretlocal').throws(new Error('Unexpected Error'));
+
+    // API Call
+    await axios.post(`${host}/api/v1/verify`, {}, {
+      withCredentials: true,
+      headers: { Cookie: 'authToken=testToken;' }
+    })
+      .then(() => {
+        assert.fail();
+      }).catch(err => {
+        assert.equal(err.response.status, 500);
+        assert.equal(err.response.data, expected);
+      });
+  });
+  
+
+          //(PUT /api/v1/verify)
+
+// it('should return 200 after validating code and logging out the user (putVerify)', async () => {
+//   //Fixture 1
+//   const expected = 'Phone number verified and user logged out';
+//   const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+
+//   const query1= 'SELECT "phoneNumber" FROM "User" WHERE "id" = $1';
+//   const args1 = [decodedJwt.userId];
+//   const result1 = { rows: [{phoneNumber: '+34 777 77 77 77'}] };
+//   const phoneNumberSTR = result1.rows[0].phoneNumber.toString().replace(/\s/g, '')
+//   const code= '1234567'
+
+//   //mock query
+//   mock.expects('query').withExactArgs(query1, args1).resolves(result1);
+
+//   //Fixture 2
+//   const query2 = 'UPDATE "Auth" SET "role" = $1 WHERE "userId" = $2';
+//   const args2 = ['VERIFIED', decodedJwt.userId];
+
+//   mock.expects('query').withExactArgs(query2, args2)
+
+//   //Fixture 3
+//   const query3 = 'SELECT "role" FROM "Auth" WHERE "userId" = $1';
+//   const args3 = [decodedJwt.userId];
+//   const result3 = { rows: [{role: 'VERIFIED'}] };
+
+//   mock.expects('query').withExactArgs(query3, args3).resolves(result3);
+
+//   // Mock Auth
+//   verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+//   //Mock Twilio
+//   console.log("HOLA")
+//   twilio2.expects('create').withArgs({
+//     to: phoneNumberSTR, 
+//     code: code
+//   }).returns({
+      
+//         sid: 'VEa8672d42c9e3315468857c86b255ebd5',
+//         serviceSid: 'VAc4c03e686ec74cee1889beebfb4beec4',
+//         accountSid: 'ACb8e997176f3d444aea3380ff13fc28c1',
+//         to: '+34601007894',
+//         channel: 'sms',
+//         status: 'approved',
+//         valid: true,
+//         amount: null,
+//         payee: null,
+//         dateCreated: '2022-04-02T15:34:35.000Z',
+//         dateUpdated: '2022-04-02T15:34:58.000Z'
+
+//   })
+//   console.log("ADIOS")
+
+//   // REST call
+//   await axios.put(`${host}/api/v1/verify`, {
+//     code: code
+//   },{
+//     withCredentials: true,
+//     headers: { Cookie: 'authToken=testToken;' }
+//   }).then( (res) => {
+//     console.log(res)
+//     assert.equal(res.status, 200);
+//     assert.equal(res.data, expected)
+//   }).catch( () => {
+//     assert.fail();
+//   });
+// })
+
+
+
+
+it('should return code 401 when authToken is missing when verifing (putVerify)', async () => {
+  const expected = 'Unauthorized';
+
+  // REST call
+  await axios.put(`${host}/api/v1/verify`, {
+    code: '1234567'
+  }).then( () => {
+    assert.fail();
+  }).catch( (err) => {
+    assert.equal(err.response.status, 401);
+    assert.equal(err.response.data, expected);
+  })
+})
+
+it('Should return 401 when JWTError is thrown on verification (putVerify)', async () => {
+  // Fixture
+  const expected = 'Unauthorized: Invalid token';
+
+  // Mock Auth
+  verify.withArgs('testToken', 'stackingupsecretlocal').throws(new jwt.JsonWebTokenError('Invalid token'));
+
+  // API Call
+  await axios.put(`${host}/api/v1/verify`, {
+    code: '1234567'
+  }, {
+    withCredentials: true,
+    headers: { Cookie: 'authToken=testToken;' }
+  })
+    .then(() => {
+      assert.fail();
+    }).catch(err => {
+      assert.equal(err.response.status, 401);
+      assert.equal(err.response.data, expected);
+    });
+});
+
+it('should return 403 when user is already verified (putVerify)', async () => {
+  // Fixture
+  const expected = 'User already verified.';
+  const decodedJwt = { userId: 1, role: 'VERIFIED', email: 'test@test.com' };
+
+
+  // Mock Auth
+  verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+  // REST call
+  await axios.put(`${host}/api/v1/verify`, {
+    code: '1234567'
+  }, {
+    withCredentials: true,
+    headers: { Cookie: 'authToken=testToken;' }
+  }).then( () => {
+    assert.fail();
+  }).catch( (err) => {
+    assert.equal(err.response.status, 403);
+    assert.equal(err.response.data, expected);
+  })
+})
+
+it('should return 400 when the given code does not match the pattern (putVerify)', async () => {
+    // Fixture
+    const expected = 'Invalid verification code';
+    const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+  
+    // Mock Auth
+    verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+  
+    // REST call
+    await axios.put(`${host}/api/v1/verify`, {
+      code: '123er67'
+    }, {
+      withCredentials: true,
+      headers: { Cookie: 'authToken=testToken;' }
+    }).then( () => {
+      assert.fail();
+    }).catch( (err) => {
+      assert.equal(err.response.status, 400);
+      assert.equal(err.response.data, expected);
+    })
+})
+
+it('should return 400 when the given code is not composed of 7 numbers (putVerify)', async () => {
+  // Fixture
+  const expected = 'Invalid verification code';
+  const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+
+  // Mock Auth
+  verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+  // REST call
+  await axios.put(`${host}/api/v1/verify`, {
+    code: '123456'
+  }, {
+    withCredentials: true,
+    headers: { Cookie: 'authToken=testToken;' }
+  }).then( () => {
+    assert.fail();
+  }).catch( (err) => {
+    assert.equal(err.response.status, 400);
+    assert.equal(err.response.data, expected);
+  })
+})
+
+
+it('should return 400 when phone number is missing (putVerify)', async () => {
+  // Fixture
+  const expected = 'Missing phone number';
+  const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+  const query= 'SELECT "phoneNumber" FROM "User" WHERE "id" = $1';
+  const args = [decodedJwt.userId];
+  const result = { rows: [{}] };
+
+  //mock query
+  mock.expects('query').withExactArgs(query, args).resolves(result);
+
+  // Mock Auth
+  verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+  // REST call
+  await axios.put(`${host}/api/v1/verify`, {
+    code: '1234567'
+  },{
+    withCredentials: true,
+    headers: { Cookie: 'authToken=testToken;' }
+  }
+   ).then( () => {
+    assert.fail();
+  }).catch( (err) => {
+    assert.equal(err.response.status, 400);
+    assert.equal(err.response.data, expected)
+  });
+})
+
+it('should return 400 when phone number is undefined (putVerify)', async () => {
+  // Fixture
+  const expected = 'Missing phone number';
+  const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+  const query= 'SELECT "phoneNumber" FROM "User" WHERE "id" = $1';
+  const args = [decodedJwt.userId];
+  const result = { rows: [{phoneNumber: undefined}] };
+
+  //mock query
+  mock.expects('query').withExactArgs(query, args).resolves(result);
+
+  // Mock Auth
+  verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+  // REST call
+  await axios.put(`${host}/api/v1/verify`, {
+    code: '1234567'
+  },{
+    withCredentials: true,
+    headers: { Cookie: 'authToken=testToken;' }
+  }
+   ).then( () => {
+    assert.fail();
+  }).catch( (err) => {
+    assert.equal(err.response.status, 400);
+    assert.equal(err.response.data, expected)
+  });
+})
+
+it('should return 400 when phone number is invalid (putVerify)', async () => {
+  // Fixture
+  const expected = 'Invalid phone number';
+  const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+  const query= 'SELECT "phoneNumber" FROM "User" WHERE "id" = $1';
+  const args = [decodedJwt.userId];
+  const result = { rows: [{phoneNumber: '+34 678 83 83 536'}] }; //diez números en el teléfono
+
+  //mock query
+  mock.expects('query').withExactArgs(query, args).resolves(result);
+
+  // Mock Auth
+  verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+  // REST call
+  await axios.put(`${host}/api/v1/verify`, {
+    code: '1234567'
+  },{
+    withCredentials: true,
+    headers: { Cookie: 'authToken=testToken;' }
+  }
+   ).then( () => {
+    assert.fail();
+  }).catch( (err) => {
+    assert.equal(err.response.status, 400);
+    assert.equal(err.response.data, expected)
+  });
+})
+
+it('should return 400 when phone number contains letters (putVerify)', async () => {
+  // Fixture
+  const expected = 'Invalid phone number';
+  const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+  const query= 'SELECT "phoneNumber" FROM "User" WHERE "id" = $1';
+  const args = [decodedJwt.userId];
+  const result = { rows: [{phoneNumber: '+34 678 test 56'}] }; 
+
+  //mock query
+  mock.expects('query').withExactArgs(query, args).resolves(result);
+
+  // Mock Auth
+  verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+  // REST call
+  await axios.put(`${host}/api/v1/verify`, {
+    code: '1234567'
+  },{
+    withCredentials: true,
+    headers: { Cookie: 'authToken=testToken;' }
+  }
+   ).then( () => {
+    assert.fail();
+  }).catch( (err) => {
+    assert.equal(err.response.status, 400);
+    assert.equal(err.response.data, expected)
+  });
+})
+
+it('should return 400 when phone number without prefix (putVerify)', async () => {
+  // Fixture
+  const expected = 'Invalid phone number';
+  const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+  const query= 'SELECT "phoneNumber" FROM "User" WHERE "id" = $1';
+  const args = [decodedJwt.userId];
+  const result = { rows: [{phoneNumber: '678 45 72 56'}] }; 
+
+  //mock query
+  mock.expects('query').withExactArgs(query, args).resolves(result);
+
+  // Mock Auth
+  verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+  // REST call
+  await axios.put(`${host}/api/v1/verify`, {
+    code: '1234567'
+  },{
+    withCredentials: true,
+    headers: { Cookie: 'authToken=testToken;' }
+  }
+   ).then( () => {
+    assert.fail();
+  }).catch( (err) => {
+    assert.equal(err.response.status, 400);
+    assert.equal(err.response.data, expected)
+  });
+})
+
+it('Should return 500 when an unexpected error is thrown (putVerify)', async () => {
+  // Fixture
+  const expected = 'Internal Server Error';
+
+  // Mock Auth 
+  console.error = sinon.stub(); // Avoid logging intentionally provoked error
+  verify.withArgs('testToken', 'stackingupsecretlocal').throws(new Error('Unexpected Error'));
+
+  // API Call
+  await axios.put(`${host}/api/v1/verify`, {
+    code: '1234567'
+  }, {
+    withCredentials: true,
+    headers: { Cookie: 'authToken=testToken;' }
+  })
+    .then(() => {
+      assert.fail();
+    }).catch(err => {
+      assert.equal(err.response.status, 500);
+      assert.equal(err.response.data, expected);
+    });
+});
 
 }
