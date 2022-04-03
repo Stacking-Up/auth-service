@@ -1,5 +1,5 @@
 'use strict';
-require('dotenv').config();
+const dotenv = require('dotenv').config();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const pool = require('../utils/dbCon');
@@ -8,6 +8,9 @@ const authTokenTwilio = process.env.TWILIO_AUTH_TOKEN;
 const stackingupSid = process.env.STACKINGUP_SID;
 const client = require('twilio')(accountSid, authTokenTwilio);
 const secret = process.env.JWT_SECRET || 'stackingupsecretlocal';
+
+/* istanbul ignore next */
+if (dotenv.error) console.warn('Warninf: error reading .env file: ', dotenv.error);
 
 module.exports.login = function login (req, res, next) {
   const { username, password } = req.credentials.value;
