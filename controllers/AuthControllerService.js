@@ -161,7 +161,7 @@ module.exports.postVerify = function postVerify (req, res, next) {
   }
 };
 
-module.exports.putVerify =  function putVerify (req, res, next) {
+module.exports.putVerify = function putVerify (req, res, next) {
   const authToken = req.cookies?.authToken;
   const code = req.swagger.params.code?.value.code.toString();
 
@@ -198,7 +198,6 @@ module.exports.putVerify =  function putVerify (req, res, next) {
             .verificationChecks
             .create({ to: phoneNumberSTR, code: code })
             .then(verificationCheck => {
-              console.log(verificationCheck)
               if (verificationCheck.status !== 'approved') {
                 res.status(400).send('Error when verifying this number. Wrong code.');
                 return;
