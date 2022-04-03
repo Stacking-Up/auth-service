@@ -3,14 +3,14 @@ const dotenv = require('dotenv').config();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const pool = require('../utils/dbCon');
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authTokenTwilio = process.env.TWILIO_AUTH_TOKEN;
+const accountSid = process.env.TWILIO_ACCOUNT_SID || process.env.TWILIO_ACCOUNT_SID_TEST;
+const authTokenTwilio = process.env.TWILIO_AUTH_TOKEN || process.env.TWILIO_AUTH_TOKEN_TEST;
 const stackingupSid = process.env.STACKINGUP_SID;
 const client = require('twilio')(accountSid, authTokenTwilio);
 const secret = process.env.JWT_SECRET || 'stackingupsecretlocal';
 
 /* istanbul ignore next */
-if (dotenv.error) console.warn('Warninf: error reading .env file: ', dotenv.error);
+if (dotenv.error) console.warn('Warning: error reading .env file: ', dotenv.error);
 
 module.exports.login = function login (req, res, next) {
   const { username, password } = req.credentials.value;
