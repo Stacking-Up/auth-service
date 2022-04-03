@@ -7,10 +7,10 @@ const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authTokenTwilio = process.env.TWILIO_AUTH_TOKEN;
 const stackingupSid = process.env.STACKINGUP_SID;
 const client = require('twilio')(accountSid, authTokenTwilio);
+const secret = process.env.JWT_SECRET || 'stackingupsecretlocal';
 
 module.exports.login = function login (req, res, next) {
   const { username, password } = req.credentials.value;
-  const secret = process.env.JWT_SECRET || 'stackingupsecretlocal';
 
   if (!username || !password) {
     return res.status(400).send('Missing username or password');
@@ -209,9 +209,18 @@ module.exports.putVerify = function putVerify (req, res, next) {
                     return;
                   }
                   try {
+                    const token = jwt.sign({
+                      email: decoded.email,
+                      role: 'VERIFIED',
+                      userId: decoded.userId
+                    }, secret, { expiresIn: '24h' });
+                
+                    /* istanbul ignore next */
+                    const secure = process.env.COOKIE_DOMAIN ? 'Secure;' : ';';
+                
                     res.setHeader('Set-Cookie',
-                      `authToken=; Max-Age=-1; Path=/; Domain=${process.env.COOKIE_DOMAIN || 'localhost'}`
-                    ).status(200).send('Phone number verified and user logged out');
+                      `authToken=${token}; HttpOnly; ${secure} Max-Age=${60 * 60 * 24}; Path=/; Domain=${process.env.COOKIE_DOMAIN || 'localhost'}`
+                    ).status(200).send('Phone number verified and refreshed user token');
                   } catch (err) {
                     /* istanbul ignore next */
                     res.status(500).send('Internal server error');
