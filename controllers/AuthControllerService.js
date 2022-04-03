@@ -193,7 +193,7 @@ module.exports.putVerify = function putVerify (req, res, next) {
           res.status(400).send('Invalid phone number');
           return;
         }
-        
+
         /* istanbul ignore next */
         try {
           client.verify.services(stackingupSid.toString())
@@ -216,10 +216,10 @@ module.exports.putVerify = function putVerify (req, res, next) {
                       role: 'VERIFIED',
                       userId: decoded.userId
                     }, secret, { expiresIn: '24h' });
-                
+
                     /* istanbul ignore next */
                     const secure = process.env.COOKIE_DOMAIN ? 'Secure;' : ';';
-                
+
                     res.setHeader('Set-Cookie',
                       `authToken=${token}; HttpOnly; ${secure} Max-Age=${60 * 60 * 24}; Path=/; Domain=${process.env.COOKIE_DOMAIN || 'localhost'}`
                     ).status(200).send('Phone number verified and refreshed user token');
