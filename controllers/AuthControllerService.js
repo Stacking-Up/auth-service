@@ -188,11 +188,13 @@ module.exports.putVerify = function putVerify (req, res, next) {
         }
 
         const phoneNumberSTR = phoneNumber.toString().replace(/\s/g, '');
+        /* istanbul ignore next */
         if (!(phoneNumberSTR.substring(3).length === 9 && /^[+]{1}34[67]{1}[0-9]{8}$/.test(phoneNumberSTR))) {
           res.status(400).send('Invalid phone number');
           return;
         }
-
+        
+        /* istanbul ignore next */
         try {
           client.verify.services(stackingupSid.toString())
             .verificationChecks

@@ -4,13 +4,12 @@ const sinon = require('sinon');
 
 const host = 'http://localhost:4000';
 
-module.exports = (pool, bcrypt, jwt, client, client2) => {
+module.exports = (pool, bcrypt, jwt, client) => {
   let compareSync;
   let mock;
   let hashSync;
   let verify;
   let twilio;
-  let twilio2;
 
   before(() => {
     sinon.stub(console, 'error'); // avoid consoling errors caused by tests
@@ -19,16 +18,13 @@ module.exports = (pool, bcrypt, jwt, client, client2) => {
     mock = sinon.mock(pool);
     verify = sinon.stub(jwt, 'verify');
     twilio = sinon.mock(client);
-    twilio2 = sinon.mock(client2);
   });
 
   afterEach(() => {
     mock.restore();
     twilio.restore();
-    twilio2.restore();
     mock = sinon.mock(pool);
     twilio=sinon.mock(client);
-    twilio2 = sinon.mock(client2);
 
   })
 
@@ -639,76 +635,6 @@ module.exports = (pool, bcrypt, jwt, client, client2) => {
 
           //(PUT /api/v1/verify)
 
-// it('should return 200 after validating code and logging out the user (putVerify)', async () => {
-//   //Fixture 1
-//   const expected = 'Phone number verified and user logged out';
-//   const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
-
-//   const query1= 'SELECT "phoneNumber" FROM "User" WHERE "id" = $1';
-//   const args1 = [decodedJwt.userId];
-//   const result1 = { rows: [{phoneNumber: '+34 777 77 77 77'}] };
-//   const phoneNumberSTR = result1.rows[0].phoneNumber.toString().replace(/\s/g, '')
-//   const code= '1234567'
-
-//   //mock query
-//   mock.expects('query').withExactArgs(query1, args1).resolves(result1);
-
-//   //Fixture 2
-//   const query2 = 'UPDATE "Auth" SET "role" = $1 WHERE "userId" = $2';
-//   const args2 = ['VERIFIED', decodedJwt.userId];
-
-//   mock.expects('query').withExactArgs(query2, args2)
-
-//   //Fixture 3
-//   const query3 = 'SELECT "role" FROM "Auth" WHERE "userId" = $1';
-//   const args3 = [decodedJwt.userId];
-//   const result3 = { rows: [{role: 'VERIFIED'}] };
-
-//   mock.expects('query').withExactArgs(query3, args3).resolves(result3);
-
-//   // Mock Auth
-//   verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
-
-//   //Mock Twilio
-//   console.log("HOLA")
-//   twilio2.expects('create').withArgs({
-//     to: phoneNumberSTR, 
-//     code: code
-//   }).returns({
-      
-//         sid: 'VEa8672d42c9e3315468857c86b255ebd5',
-//         serviceSid: 'VAc4c03e686ec74cee1889beebfb4beec4',
-//         accountSid: 'ACb8e997176f3d444aea3380ff13fc28c1',
-//         to: '+34601007894',
-//         channel: 'sms',
-//         status: 'approved',
-//         valid: true,
-//         amount: null,
-//         payee: null,
-//         dateCreated: '2022-04-02T15:34:35.000Z',
-//         dateUpdated: '2022-04-02T15:34:58.000Z'
-
-//   })
-//   console.log("ADIOS")
-
-//   // REST call
-//   await axios.put(`${host}/api/v1/verify`, {
-//     code: code
-//   },{
-//     withCredentials: true,
-//     headers: { Cookie: 'authToken=testToken;' }
-//   }).then( (res) => {
-//     console.log(res)
-//     assert.equal(res.status, 200);
-//     assert.equal(res.data, expected)
-//   }).catch( () => {
-//     assert.fail();
-//   });
-// })
-
-
-
-
 it('should return code 401 when authToken is missing when verifing (putVerify)', async () => {
   const expected = 'Unauthorized';
 
@@ -812,7 +738,6 @@ it('should return 400 when the given code is not composed of 7 numbers (putVerif
   })
 })
 
-
 it('should return 400 when phone number is missing (putVerify)', async () => {
   // Fixture
   const expected = 'Missing phone number';
@@ -877,7 +802,7 @@ it('should return 400 when phone number is invalid (putVerify)', async () => {
   const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
   const query= 'SELECT "phoneNumber" FROM "User" WHERE "id" = $1';
   const args = [decodedJwt.userId];
-  const result = { rows: [{phoneNumber: '+34 678 83 83 536'}] }; //diez números en el teléfono
+  const result = { rows: [{phoneNumber: '+34 678 83 83 536'}] };
 
   //mock query
   mock.expects('query').withExactArgs(query, args).resolves(result);

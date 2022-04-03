@@ -10,7 +10,6 @@ const accountSid = process.env.TWILIO_ACCOUNT_SID_TEST;
 const authTokenTwilio = process.env.TWILIO_AUTH_TOKEN_TEST;
 const stackingupSid = process.env.STACKINGUP_SID;
 const client = require('twilio')(accountSid, authTokenTwilio).verify.services(stackingupSid.toString()).verifications;
-const client2 = require('twilio')(accountSid, authTokenTwilio).verify.services(stackingupSid.toString()).verificationChecks;
 
 
 describe('========== UNIT TESTING ==========', () => {
@@ -18,7 +17,7 @@ describe('========== UNIT TESTING ==========', () => {
         server.deploy('test').then( () => done());
     });
 
-    describe('Auth Tests', authTest.bind(this, pool, bcrypt, jwt, client, client2));
+    describe('Auth Tests', authTest.bind(this, pool, bcrypt, jwt, client));
 
     after( (done) => {
         server.undeploy();
