@@ -13,6 +13,11 @@ on:
     paths-ignore:
       - '**/*.md'
 
+env:
+  TWILIO_ACCOUNT_SID_TEST: ${{ secrets.TWILIO_ACCOUNT_SID_TEST }}
+  TWILIO_AUTH_TOKEN_TEST: ${{ secrets.TWILIO_AUTH_TOKEN_TEST }}
+  STACKINGUP_SID: ${{ secrets.STACKINGUP_SID }}
+
 jobs:
   test:
     name: Lint, test and coverage to coveralls

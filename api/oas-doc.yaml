@@ -84,6 +84,128 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/errorModel'
+  /api/v1/register:
+    post:
+      tags:
+        - Authentication
+      x-swagger-router-controller: AuthController
+      description: Checks the user information and create a new user
+      operationId: register
+      requestBody:
+        x-name: user
+        description: User information
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/userRegister'
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'  
+  /api/v1/verify:
+    post:
+      security:
+        - cookieAuth: []
+      tags:
+        - Verification
+      x-swagger-router-controller: AuthController
+      description: Verifies the user phone number
+      operationId: postVerify
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
+    put:
+      security:
+        - cookieAuth: []
+      tags:
+        - Verification
+      x-swagger-router-controller: AuthController
+      description: Verifies the user phone number
+      operationId: putVerify
+      requestBody:
+        x-name: code
+        description: Random code sent to the user
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/code'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+               $ref: '#/components/schemas/errorModel'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
+
 components:
   schemas:
     errorModel:
@@ -98,3 +220,27 @@ components:
           type: string
         password:
           type: string
+    userRegister:
+      type: object
+      required:
+        - name
+        - surname
+        - email
+        - password
+      properties:
+        name:
+          type: string
+        surname:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+    code:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+
