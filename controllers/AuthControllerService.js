@@ -3,8 +3,8 @@ const dotenv = require('dotenv').config();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const pool = require('../utils/dbCon');
-const accountSid = process.env.TWILIO_ACCOUNT_SID || process.env.TWILIO_ACCOUNT_SID_TEST;
-const authTokenTwilio = process.env.TWILIO_AUTH_TOKEN || process.env.TWILIO_AUTH_TOKEN_TEST;
+const accountSid = process.env.TWILIO_ACCOUNT_SID; // || process.env.TWILIO_ACCOUNT_SID_TEST;
+const authTokenTwilio = process.env.TWILIO_AUTH_TOKEN; // || process.env.TWILIO_AUTH_TOKEN_TEST;
 const stackingupSid = process.env.STACKINGUP_SID;
 const client = require('twilio')(accountSid, authTokenTwilio);
 const secret = process.env.JWT_SECRET || 'stackingupsecretlocal';
@@ -237,6 +237,55 @@ module.exports.putVerify = function putVerify (req, res, next) {
           console.error(err);
           res.status(500).send('Internal server error');
         }
+      });
+    } catch (err) {
+      if (err instanceof jwt.JsonWebTokenError) {
+        res.status(401).send(`Unauthorized: ${err.message}`);
+      } else {
+        res.status(500).send('Internal Server Error');
+      }
+    }
+  } else {
+    res.status(401).send('Unauthorized');
+  }
+};
+
+module.exports.putSuscribed = function putSuscribed (req, res, next) {
+  const authToken = req.cookies?.authToken;
+
+  if (authToken) {
+    try {
+      const decoded = jwt.verify(authToken, process.env.JWT_SECRET || 'stackingupsecretlocal');
+
+      if (decoded.role !== 'VERIFIED') {
+        res.status(403).send('User must be verified to suscribe.');
+        return;
+      }
+
+      pool.query('UPDATE "Auth" SET "role" = $1 WHERE "userId" = $2', ['SUBSCRIBED', decoded.userId]).then(() => {
+        pool.query('SELECT "role" FROM "Auth" WHERE "userId" = $1', [decoded.userId]).then(result => {
+          if (result.rows[0].role !== 'SUBSCRIBED') {
+            res.status(500).send('Internal server error. User role not changed.');
+            return;
+          }
+          try {
+            const token = jwt.sign({
+              email: decoded.email,
+              role: 'SUBSCRIBED',
+              userId: decoded.userId
+            }, secret, { expiresIn: '24h' });
+
+            /* istanbul ignore next */
+            const secure = process.env.COOKIE_DOMAIN ? 'Secure;' : ';';
+
+            res.setHeader('Set-Cookie',
+              `authToken=${token}; HttpOnly; ${secure} Max-Age=${60 * 60 * 24}; Path=/; Domain=${process.env.COOKIE_DOMAIN || 'localhost'}`
+            ).status(200).send('User SUBSCRIBED and refreshed user token');
+          } catch (err) {
+            /* istanbul ignore next */
+            res.status(500).send('Internal server error');
+          }
+        });
       });
     } catch (err) {
       if (err instanceof jwt.JsonWebTokenError) {

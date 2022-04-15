@@ -205,6 +205,46 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/errorModel'
+  /api/v1/suscribe:
+    put:
+      security:
+        - cookieAuth: []
+      tags:
+        - Subscription
+      x-swagger-router-controller: AuthController
+      description: Update the user role to SUBSCRIBED after the payment
+      operationId: putSuscribed
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+               $ref: '#/components/schemas/errorModel'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
 
 components:
   schemas:
