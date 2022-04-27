@@ -383,8 +383,7 @@ module.exports = (pool, bcrypt, jwt, client) => {
     });
   });
 
-
-
+  
   // VERIFICATION PROCESS 
         
           //(POST /api/v1/verify)
@@ -895,6 +894,137 @@ it('Should return 500 when an unexpected error is thrown (putVerify)', async () 
   await axios.put(`${host}/api/v1/verify`, {
     code: '1234567'
   }, {
+    withCredentials: true,
+    headers: { Cookie: 'authToken=testToken;' }
+  })
+    .then(() => {
+      assert.fail();
+    }).catch(err => {
+      assert.equal(err.response.status, 500);
+      assert.equal(err.response.data, expected);
+    });
+});
+
+// PUT /api/v1/suscribe
+
+it('should return 200 when trying to suscribe with the verified role', async () => {
+  // Fixture
+  const expected = 'User SUBSCRIBED and refreshed user token';
+  const decodedJwt = { userId: 1, role: 'VERIFIED', email: 'test@test.com' };
+  const query = 'UPDATE "Auth" SET "role" = $1 WHERE "userId" = $2';
+  const args = ['SUBSCRIBED', 1];
+  const result = { rows: [{role: 'SUBSCRIBED'}] };
+  const query2 = 'SELECT "role" FROM "Auth" WHERE "userId" = $1';
+  const args2 = [1];
+
+  // Mock Auth
+  verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+  // mock query
+  mock.expects('query').withExactArgs(query, args).resolves();
+  mock.expects('query').withExactArgs(query2, args2).resolves(result);
+
+  // REST call
+  await axios.put(`${host}/api/v1/suscribe`, {}, {
+    withCredentials: true,
+    headers: { Cookie: 'authToken=testToken;' }
+  }).then( (res) => {
+    assert.equal(res.status, 200);
+    assert.equal(res.data, expected);
+  });
+})
+
+it('should return code 401 when authToken is missing when trying to suscribe', async () => {
+  const expected = 'Unauthorized';
+
+  // REST call
+  await axios.put(`${host}/api/v1/suscribe`, {})
+  .then( () => {
+    assert.fail();
+  }).catch( (err) => {
+    assert.equal(err.response.status, 401);
+    assert.equal(err.response.data, expected);
+  })
+})
+
+it('Should return 401 when JWTError is thrown while suscribing', async () => {
+  // Fixture
+  const expected = 'Unauthorized: Invalid token';
+
+  // Mock Auth
+  verify.withArgs('testToken', 'stackingupsecretlocal').throws(new jwt.JsonWebTokenError('Invalid token'));
+
+  // API Call
+  await axios.put(`${host}/api/v1/suscribe`, {}, {
+    withCredentials: true,
+    headers: { Cookie: 'authToken=testToken;' }
+  })
+    .then(() => {
+      assert.fail();
+    }).catch(err => {
+      assert.equal(err.response.status, 401);
+      assert.equal(err.response.data, expected);
+    });
+});
+
+it('should return 403 when trying to suscribe with a different role of verified', async () => {
+  // Fixture
+  const expected = 'User must be verified to suscribe.';
+  const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+
+  // Mock Auth
+  verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+  // REST call
+  await axios.put(`${host}/api/v1/suscribe`, {}, {
+    withCredentials: true,
+    headers: { Cookie: 'authToken=testToken;' }
+  }).then( () => {
+    assert.fail();
+  }).catch( (err) => {
+    assert.equal(err.response.status, 403);
+    assert.equal(err.response.data, expected);
+  });
+})
+
+it('should return 500 when unexpected error trying to update the role to suscribed', async () => {
+  // Fixture
+  const expected = 'Internal server error. User role not changed.';
+  const decodedJwt = { userId: 1, role: 'VERIFIED', email: 'test@test.com' };
+  const query = 'UPDATE "Auth" SET "role" = $1 WHERE "userId" = $2';
+  const args = ['SUBSCRIBED', 1];
+  const result = { rows: [{role: 'VERIFIED'}] };
+  const query2 = 'SELECT "role" FROM "Auth" WHERE "userId" = $1';
+  const args2 = [1];
+
+  // Mock Auth
+  verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+  // mock query
+  mock.expects('query').withExactArgs(query, args).resolves();
+  mock.expects('query').withExactArgs(query2, args2).resolves(result);
+
+  // REST call
+  await axios.put(`${host}/api/v1/suscribe`, {}, {
+    withCredentials: true,
+    headers: { Cookie: 'authToken=testToken;' }
+  }).then( (res) => {
+    assert.fail();
+  }).catch((err) => {
+    assert.equal(err.response.status, 500);
+    assert.equal(err.response.data, expected);
+  });
+})
+
+it('Should return 500 when an unexpected error is thrown when trying to suscribe', async () => {
+  // Fixture
+  const expected = 'Internal Server Error';
+
+  // Mock Auth 
+  verify.withArgs('testToken', 'stackingupsecretlocal').throws(new Error('Unexpected Error'));
+
+  // API Call
+  await axios.put(`${host}/api/v1/suscribe`, {}, {
     withCredentials: true,
     headers: { Cookie: 'authToken=testToken;' }
   })
