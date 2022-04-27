@@ -1,3 +1,18 @@
+# [0.3.0](https://github.com/Stacking-Up/auth-service/compare/v0.2.0...v0.3.0) (2022-04-27)
+
+
+### Bug Fixes
+
+* Added OR for Twilio API_KEY to get CI working ([f45bbff](https://github.com/Stacking-Up/auth-service/commit/f45bbffbdb35efbc8be83c8de9e26c3897cdddcb))
+* Removed unused OR code of Twilio API_KEY ([e313301](https://github.com/Stacking-Up/auth-service/commit/e313301340d7c05a9713a37e7ef98d30d6ec0cdd))
+
+
+### Features
+
+* Implemented PUT suscribed endpoint ([14f1190](https://github.com/Stacking-Up/auth-service/commit/14f1190b791eb4eb907799449632084987d3b607))
+
+
+
 # [0.2.0](https://github.com/Stacking-Up/auth-service/compare/v0.1.0...v0.2.0) (2022-04-06)
 
 
