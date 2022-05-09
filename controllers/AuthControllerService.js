@@ -168,7 +168,7 @@ module.exports.postVerify = function postVerify (req, res, next) {
 
 module.exports.putVerify = function putVerify (req, res, next) {
   const authToken = req.cookies?.authToken;
-  const code = req.swagger.params.code?.value.code.toString();
+  const code = req.swagger.params.code?.value?.code?.toString();
 
   if (authToken) {
     try {
@@ -179,7 +179,7 @@ module.exports.putVerify = function putVerify (req, res, next) {
         return;
       }
 
-      if (!(code.length === 7 && /^[0-9]{7}$/.test(code))) {
+      if (!code || !(code.length === 7 && /^[0-9]{7}$/.test(code))) {
         res.status(400).send('Invalid verification code');
         return;
       }
@@ -288,6 +288,60 @@ module.exports.putSuscribed = function putSuscribed (req, res, next) {
             res.status(500).send('Internal server error');
           }
         });
+      });
+    } catch (err) {
+      if (err instanceof jwt.JsonWebTokenError) {
+        res.status(401).send(`Unauthorized: ${err.message}`);
+      } else {
+        res.status(500).send('Internal Server Error');
+      }
+    }
+  } else {
+    res.status(401).send('Unauthorized');
+  }
+};
+
+module.exports.changePassword = function changePassword (req, res, next) {
+  const authToken = req.cookies?.authToken;
+  const oldPassword = req.swagger.params.passwords?.value?.oldPassword?.toString();
+  const newPassword = req.swagger.params.passwords?.value?.newPassword?.toString();
+
+  if (authToken) {
+    try {
+      const decoded = jwt.verify(authToken, process.env.JWT_SECRET || 'stackingupsecretlocal');
+
+      if (!oldPassword || !newPassword) {
+        res.status(400).send('Missing password');
+        return;
+      }
+
+      // oldPassword must match with the one in the database
+      pool.query('SELECT "password" FROM "Auth" WHERE "userId" = $1', [decoded.userId]).then(result => {
+        if (!bcrypt.compareSync(oldPassword, result.rows[0].password)) {
+          res.status(400).send('Wrong old password');
+          return;
+        }
+
+        if (oldPassword === newPassword) {
+          res.status(400).send('New password must be different from the old one');
+          return;
+        }
+
+        // newPassword must be validated and then encrypted and updated in database
+        if (!newPassword.toString().match(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/)) {
+          res.status(400).send('Password must contain at least one number, one lowercase and one uppercase letter, and at least 8 characters long');
+          return;
+        }
+
+        pool.query('UPDATE "Auth" SET "password" = $1 WHERE "userId" = $2', [bcrypt.hashSync(newPassword, 10), decoded.userId]).then(() => {
+          res.status(200).send('Password changed succesfully');
+        }).catch(err => {
+          console.error(err);
+          res.status(500).send('Internal server error');
+        });
+      }).catch(err => {
+        console.error(err);
+        res.status(500).send('Internal server error');
       });
     } catch (err) {
       if (err instanceof jwt.JsonWebTokenError) {

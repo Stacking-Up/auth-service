@@ -1036,4 +1036,360 @@ it('Should return 500 when an unexpected error is thrown when trying to suscribe
     });
 });
 
+it('should return code 200 when change the password correctly', async () => {
+  const oldPassword = 'oldPassword1';
+  const newPassword = 'newPassword1';
+  const expected = 'Password changed succesfully';
+  const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+  const query = 'SELECT "password" FROM "Auth" WHERE "userId" = $1';
+  const args = [decodedJwt.userId];
+  const result = { rows: [{password: oldPassword}] };
+  const query2 = 'UPDATE "Auth" SET "password" = $1 WHERE "userId" = $2';
+  const args2 = [hashSync(newPassword, 10), decodedJwt.userId];
+
+  // Mock Auth
+  verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+  //mock SELECT query
+  mock.expects('query').withExactArgs(query, args).resolves(result);
+
+  // check old password is correct and hash new password
+  compareSync.returns(true);
+
+  // mock UPDATE query
+  mock.expects('query').withExactArgs(query2, args2).resolves();
+
+  // REST call
+  await axios.put(`${host}/api/v1/changePassword`, {
+    oldPassword: oldPassword,
+    newPassword: newPassword
+  },{
+    withCredentials: true,
+    headers: { Cookie: 'authToken=testToken;' }
+  }
+   ).then( (res) => {
+    assert.equal(res.status, 200);
+    assert.equal(res.data, expected)
+  }).catch( () => {
+    assert.fail();
+  });
+});
+
+it('should return code 400 when trying to change password without sending one of the passwords', async () => {
+  const oldPassword = 'oldPassword1';
+  const newPassword = 'newPassword1';
+  const expected = 'Missing password';
+  const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+  const query = 'SELECT "password" FROM "Auth" WHERE "userId" = $1';
+  const args = [decodedJwt.userId];
+  const result = { rows: [{password: oldPassword}] };
+  const query2 = 'UPDATE "Auth" SET "password" = $1 WHERE "userId" = $2';
+  const args2 = [hashSync(newPassword, 10), decodedJwt.userId];
+
+  // Mock Auth
+  verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+  //mock SELECT query
+  mock.expects('query').withExactArgs(query, args).resolves(result);
+
+  // check old password is correct and hash new password
+  compareSync.returns(true);
+
+  // mock UPDATE query
+  mock.expects('query').withExactArgs(query2, args2).resolves();
+
+  // REST call
+  await axios.put(`${host}/api/v1/changePassword`, {
+    oldPassword: oldPassword,
+    //newPassword: newPassword
+  },{
+    withCredentials: true,
+    headers: { Cookie: 'authToken=testToken;' }
+  }).then( () => {
+    assert.fail();
+  }).catch( (err) => {
+    assert.equal(err.response.status, 400);
+    assert.equal(err.response.data, expected);
+  })
+});
+
+it('should return code 400 when trying to change password without sending one of the passwords', async () => {
+  const oldPassword = 'oldPassword1';
+  const newPassword = 'newPassword1';
+  const expected = 'Wrong old password';
+  const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+  const query = 'SELECT "password" FROM "Auth" WHERE "userId" = $1';
+  const args = [decodedJwt.userId];
+  const result = { rows: [{password: 'differentPassword1'}] };
+  const query2 = 'UPDATE "Auth" SET "password" = $1 WHERE "userId" = $2';
+  const args2 = [hashSync(newPassword, 10), decodedJwt.userId];
+
+  // Mock Auth
+  verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+  //mock SELECT query
+  mock.expects('query').withExactArgs(query, args).resolves(result);
+
+  // check old password is correct and hash new password
+  compareSync.returns(false);
+
+  // mock UPDATE query
+  mock.expects('query').withExactArgs(query2, args2).resolves();
+
+  // REST call
+  await axios.put(`${host}/api/v1/changePassword`, {
+    oldPassword: oldPassword,
+    newPassword: newPassword
+  },{
+    withCredentials: true,
+    headers: { Cookie: 'authToken=testToken;' }
+  }).then( () => {
+    assert.fail();
+  }).catch( (err) => {
+    assert.equal(err.response.status, 400);
+    assert.equal(err.response.data, expected);
+  })
+});
+
+it('should return code 400 when trying to put the same password', async () => {
+  const oldPassword = 'samePassword1';
+  const newPassword = 'samePassword1';
+  const expected = 'New password must be different from the old one';
+  const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+  const query = 'SELECT "password" FROM "Auth" WHERE "userId" = $1';
+  const args = [decodedJwt.userId];
+  const result = { rows: [{password: oldPassword}] };
+  const query2 = 'UPDATE "Auth" SET "password" = $1 WHERE "userId" = $2';
+  const args2 = [hashSync(newPassword, 10), decodedJwt.userId];
+
+  // Mock Auth
+  verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+  //mock SELECT query
+  mock.expects('query').withExactArgs(query, args).resolves(result);
+
+  // check old password is correct and hash new password
+  compareSync.returns(true);
+
+  // mock UPDATE query
+  mock.expects('query').withExactArgs(query2, args2).resolves();
+
+  // REST call
+  await axios.put(`${host}/api/v1/changePassword`, {
+    oldPassword: oldPassword,
+    newPassword: newPassword
+  },{
+    withCredentials: true,
+    headers: { Cookie: 'authToken=testToken;' }
+  }).then( () => {
+    assert.fail();
+  }).catch( (err) => {
+    assert.equal(err.response.status, 400);
+    assert.equal(err.response.data, expected);
+  })
+});
+
+it('should return code 400 when trying to change the password with an invalid password', async () => {
+  const oldPassword = 'oldPassword1';
+  const newPassword = 'invalidpassword';
+  const expected = 'Password must contain at least one number, one lowercase and one uppercase letter, and at least 8 characters long';
+  const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+  const query = 'SELECT "password" FROM "Auth" WHERE "userId" = $1';
+  const args = [decodedJwt.userId];
+  const result = { rows: [{password: oldPassword}] };
+  const query2 = 'UPDATE "Auth" SET "password" = $1 WHERE "userId" = $2';
+  const args2 = [hashSync(newPassword, 10), decodedJwt.userId];
+
+  // Mock Auth
+  verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+  //mock SELECT query
+  mock.expects('query').withExactArgs(query, args).resolves(result);
+
+  // check old password is correct and hash new password
+  compareSync.returns(true);
+
+  // mock UPDATE query
+  mock.expects('query').withExactArgs(query2, args2).resolves();
+
+  // REST call
+  await axios.put(`${host}/api/v1/changePassword`, {
+    oldPassword: oldPassword,
+    newPassword: newPassword
+  },{
+    withCredentials: true,
+    headers: { Cookie: 'authToken=testToken;' }
+  }).then( () => {
+    assert.fail();
+  }).catch( (err) => {
+    assert.equal(err.response.status, 400);
+    assert.equal(err.response.data, expected);
+  })
+});
+
+it('should return code 500 when unexpected error trying to get the old password of the db', async () => {
+  const oldPassword = 'oldPassword1';
+  const newPassword = 'newPassword1';
+  const expected = 'Internal server error';
+  const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+  const query = 'SELECT "password" FROM "Auth" WHERE "userId" = $1';
+  const args = [decodedJwt.userId];
+  const result = { rows: [{password: oldPassword}] };
+  const query2 = 'UPDATE "Auth" SET "password" = $1 WHERE "userId" = $2';
+  const args2 = [hashSync(newPassword, 10), decodedJwt.userId];
+
+  // Mock Auth
+  verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+  //mock SELECT query
+  mock.expects('query').withExactArgs(query, args).rejects();
+
+  // check old password is correct and hash new password
+  compareSync.returns(true);
+
+  // mock UPDATE query
+  mock.expects('query').withExactArgs(query2, args2).resolves();
+
+  // REST call
+  await axios.put(`${host}/api/v1/changePassword`, {
+    oldPassword: oldPassword,
+    newPassword: newPassword
+  },{
+    withCredentials: true,
+    headers: { Cookie: 'authToken=testToken;' }
+  }).then( () => {
+    assert.fail();
+  }).catch( (err) => {
+    assert.equal(err.response.status, 500);
+    assert.equal(err.response.data, expected);
+  })
+});
+
+it('should return code 500 when unexpected error trying to update the new password in the db', async () => {
+  const oldPassword = 'oldPassword1';
+  const newPassword = 'newPassword1';
+  const expected = 'Internal server error';
+  const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+  const query = 'SELECT "password" FROM "Auth" WHERE "userId" = $1';
+  const args = [decodedJwt.userId];
+  const result = { rows: [{password: oldPassword}] };
+  const query2 = 'UPDATE "Auth" SET "password" = $1 WHERE "userId" = $2';
+  const args2 = [hashSync(newPassword, 10), decodedJwt.userId];
+
+  // Mock Auth
+  verify.withArgs('testToken', 'stackingupsecretlocal').returns(decodedJwt);
+
+  //mock SELECT query
+  mock.expects('query').withExactArgs(query, args).resolves(result);
+
+  // check old password is correct and hash new password
+  compareSync.returns(true);
+
+  // mock UPDATE query
+  mock.expects('query').withExactArgs(query2, args2).rejects();
+
+  // REST call
+  await axios.put(`${host}/api/v1/changePassword`, {
+    oldPassword: oldPassword,
+    newPassword: newPassword
+  },{
+    withCredentials: true,
+    headers: { Cookie: 'authToken=testToken;' }
+  }).then( () => {
+    assert.fail();
+  }).catch( (err) => {
+    assert.equal(err.response.status, 500);
+    assert.equal(err.response.data, expected);
+  })
+});
+
+it('should return code 401 when trying to change password without login (no authToken)', async () => {
+  const expected = 'Unauthorized';
+
+  // REST call
+  await axios.put(`${host}/api/v1/changePassword`, {})
+  .then( () => {
+    assert.fail();
+  }).catch( (err) => {
+    assert.equal(err.response.status, 401);
+    assert.equal(err.response.data, expected);
+  })
+});
+
+it('should return code 401 when invalid authToken provided (JSONWebToken Error)', async () => {
+  const oldPassword = 'oldPassword1';
+  const newPassword = 'newPassword1';
+  const expected = 'Unauthorized: Invalid token';
+  const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+  const query = 'SELECT "password" FROM "Auth" WHERE "userId" = $1';
+  const args = [decodedJwt.userId];
+  const result = { rows: [{password: oldPassword}] };
+  const query2 = 'UPDATE "Auth" SET "password" = $1 WHERE "userId" = $2';
+  const args2 = [hashSync(newPassword, 10), decodedJwt.userId];
+
+  // Mock Auth
+  verify.withArgs('testToken', 'stackingupsecretlocal').throws(new jwt.JsonWebTokenError('Invalid token'));
+
+  //mock SELECT query
+  mock.expects('query').withExactArgs(query, args).resolves(result);
+
+  // check old password is correct and hash new password
+  compareSync.returns(true);
+
+  // mock UPDATE query
+  mock.expects('query').withExactArgs(query2, args2).rejects();
+
+  // REST call
+  await axios.put(`${host}/api/v1/changePassword`, {
+    oldPassword: oldPassword,
+    newPassword: newPassword
+  },{
+    withCredentials: true,
+    headers: { Cookie: 'authToken=testToken;' }
+  }).then( () => {
+    assert.fail();
+  }).catch( (err) => {
+    assert.equal(err.response.status, 401);
+    assert.equal(err.response.data, expected);
+  })
+});
+
+it('should return code 500 when unexpected error trying to verify authToken', async () => {
+  const oldPassword = 'oldPassword1';
+  const newPassword = 'newPassword1';
+  const expected = 'Internal Server Error';
+  const decodedJwt = { userId: 1, role: 'USER', email: 'test@test.com' };
+  const query = 'SELECT "password" FROM "Auth" WHERE "userId" = $1';
+  const args = [decodedJwt.userId];
+  const result = { rows: [{password: oldPassword}] };
+  const query2 = 'UPDATE "Auth" SET "password" = $1 WHERE "userId" = $2';
+  const args2 = [hashSync(newPassword, 10), decodedJwt.userId];
+
+  // Mock Auth
+  verify.withArgs('testToken', 'stackingupsecretlocal').throws(new Error('Unexpected Error'));
+
+  //mock SELECT query
+  mock.expects('query').withExactArgs(query, args).resolves(result);
+
+  // check old password is correct and hash new password
+  compareSync.returns(true);
+
+  // mock UPDATE query
+  mock.expects('query').withExactArgs(query2, args2).rejects();
+
+  // REST call
+  await axios.put(`${host}/api/v1/changePassword`, {
+    oldPassword: oldPassword,
+    newPassword: newPassword
+  },{
+    withCredentials: true,
+    headers: { Cookie: 'authToken=testToken;' }
+  }).then( () => {
+    assert.fail();
+  }).catch( (err) => {
+    assert.equal(err.response.status, 500);
+    assert.equal(err.response.data, expected);
+  })
+});
+
 }
