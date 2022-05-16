@@ -25,3 +25,7 @@ module.exports.putVerify = function putVerify (req, res, next) {
 module.exports.putSuscribed = function putSuscribed (req, res, next) {
   varAuthController.putSuscribed(req, res, next);
 };
+
+module.exports.changePassword = function changePassword (req, res, next) {
+  varAuthController.changePassword(req, res, next);
+};
