@@ -1,3 +1,12 @@
+# [0.4.0](https://github.com/Stacking-Up/auth-service/compare/v0.3.0...v0.4.0) (2022-05-16)
+
+
+### Features
+
+* Added endpoint to change user password ([8629647](https://github.com/Stacking-Up/auth-service/commit/8629647d27f6a3a67afcc472c3c5a58fc8cc6d8f))
+
+
+
 # [0.3.0](https://github.com/Stacking-Up/auth-service/compare/v0.2.0...v0.3.0) (2022-04-27)
 
 
